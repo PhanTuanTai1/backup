@@ -58,7 +58,6 @@ module.exports.getCartID = (userID) => {
                 ":status": "isCart"
             }
         }
-
         docClient.query(paramsCartByCusID, async function(err, data) {
             if (err) {
                 return reject(err);
@@ -144,7 +143,7 @@ function addNewOrderDetail(orderID,product) {
                 "OrderID" : orderID,
                 "ProductID" : product.ProductID,
                 "Quantity" : 1,
-                "Price" : product.Price
+                "Price" : product.price
             }
         };
     
@@ -223,4 +222,85 @@ function getProductByID(productID) {
             }
         });
     });
+}
+
+//================================================================================================================
+module.exports.getPriceProductByID = (id) => {
+    return new Promise( async (resolve, reject) => {
+        var paramsProductID = {
+            TableName : "Products",
+            IndexName : "ProductIDIndex",
+            KeyConditionExpression: "ProductID = :productID",
+            ExpressionAttributeValues: {
+                ":productID": id
+            }
+        };
+        docClient.query(paramsProductID, function(err, data) {
+            if (err) {
+                return reject(err);
+            } else {
+                //console.log(data.Items[0]);
+                return resolve(data.Items[0].price);
+            }
+        });
+    })
+}
+
+module.exports.getOrderDetailByOrderID = (orderID) => {
+    return new Promise( async (resolve, reject) => {
+        var paramsOrderDetail = {
+            TableName : "Orders",
+            KeyConditionExpression: "OrderID = :orderID",
+            ExpressionAttributeValues: {
+                ":orderID": orderID
+            }
+        };
+        docClient.query(paramsOrderDetail, function(err, data) {
+            if (err) {
+                return reject(err);
+            } else {
+                return resolve(data.Items);
+            }
+        });
+    })
+}
+
+module.exports.deleteOrderDetail = (orderID, productID) => {
+    return new Promise( async (resolve, reject) => {
+        var params = {
+            TableName:"Orders",
+            Key:{
+                "OrderID": orderID,
+                "ProductID": productID
+            }
+        };
+
+        docClient.delete(params, function(err, data) {
+            if (err) {
+                console.log("1");
+                return reject(err);
+            } else {
+                console.log("2");
+                return resolve(true);
+            }
+        });
+    })
+}
+
+module.exports.setPriceToCart = (cart) => {
+    return new Promise( async (resolve, reject) => {
+        console.log("1");
+        var ls = cart;
+        console.log("2");
+        for (var i = 0;i<ls.length;i++){
+            console.log(ls[i].ProductID);
+            let price = await getPriceProductByID(ls[i].ProductID);
+            console.log(i);
+            ls[i].Price = price;
+            if(i<ls-1){
+                console.log(ls);
+                return resolve(ls);
+            }
+        }
+    })
 }

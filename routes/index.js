@@ -15,107 +15,181 @@ var jsonParser = bodyParser.json()
 //Việt add>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  queryOthers.Index(res);
+router.get('/', function (req, res, next) {
+    queryOthers.Index(res);
 });
 
 
-router.get('/shop', function(req, res, next) {
-  shopController.getAllCategory(res);
+router.get('/shop', function (req, res, next) {
+    shopController.getAllCategory(res);
 });
-router.get('/shop/:category', function(req, res, next) {
-  shopController.getProductByCategory(req,res);
+router.get('/shop/:category', function (req, res, next) {
+    shopController.getProductByCategory(req, res);
 });
-router.get('/Filter',function(req,res,next){
-  shopController.Filter(req,res);
+router.get('/Filter', function (req, res, next) {
+    shopController.Filter(req, res);
 })
 
 
+router.post('/cart/:id', async function (req, res, next) {
 
-router.post('/cart/:id', async function(req, res, next) {
-  
-  var userID = req.signedCookies.userID;
-  var productID = req.params.id;
+    var userID = req.signedCookies.userID;
+    var productID = req.params.id;
 
-  var isValid = await cartController.checkUserIDValid(userID);
+    var isValid = await cartController.checkUserIDValid(userID);
 
-  console.log(isValid);
+    console.log(isValid);
 
-  if(isValid) {
-    //res.render('cart', { selected: 3 });
+    if (isValid) {
+        var orderID = await cartController.getCartID(userID);
 
-    var orderID = await cartController.getCartID(userID);
+        try {
+            var t = await cartController.addProductToOrder(orderID, productID);
+            t.then(() => {
+                res.redirect('/cart');
+            });
 
-    try {
-      await cartController.addProductToOrder(orderID,productID);
-
-      res.status(200).send('OK');
+            res.status(200).send('OK');
+        } catch (err) {
+            res.status(400).send(err);
+        }
     }
-    catch(err) {
-      res.status(400).send(err);
-    }
-  }
 
-  res.status(400).send("Failed");
+    res.status(400).send("Failed");
 });
-
 
 
 //Việt add>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-//http://localhost:3000/checkout?id=123456
-router.get('/checkout', authMiddleware.requiredAuth , async function (req, res, next) {
-  var userID = req.signedCookies.userID;
+router.post('/cart/delete/:id', async function (req, res, next) {
 
-//  console.log(cart);
+    var userID = req.signedCookies.userID;
+    var productID = req.params.id;
 
-  var isValid = await cartController.checkUserIDValid(userID);
- 
-  if(isValid){
-    var customer = await checkoutController.getUser(userID);
-    var orderID = await cartController.getCartID(userID);
-    console.log(orderID)
-    var totalPrice = await checkoutController.getOrderTotalPrice(orderID)
-  
-    res.render('checkout', {cus: customer, total: totalPrice, selected: 4});
-  }
-  else
-  res.end("Error");
-  
+    var isValid = await cartController.checkUserIDValid(userID);
+
+    console.log(isValid);
+
+    if (isValid) {
+        //res.render('cart', { selected: 3 });
+
+        var orderID = await cartController.getCartID(userID);
+        console.log(orderID, productID);
+        try {
+            await cartController.deleteOrderDetail(orderID, productID);
+
+
+            //res.status(200).send('OK');
+        } catch (err) {
+            res.status(400).send(err);
+        }
+    } else {
+        res.status(400).send("Failed");
+    }
+
 });
 
-router.post('/checkout',jsonParser,function (req,res) {
+router.post('/cart/All/:id', async function (req, res, next) {
 
-  console.log(req.body);
+    var userID = req.signedCookies.userID;
+    var productID = req.params.id.split('|')[0];
+    var count = parseInt(req.params.id.split('|')[1]);
+    console.log(req.params + "======================================");
+
+    var isValid = await cartController.checkUserIDValid(userID);
+
+    console.log(isValid);
+
+    if (isValid) {
+        //res.render('cart', { selected: 3 });
+
+        var orderID = await cartController.getCartID(userID);
+
+        try {
+            await cartController.addProductToOrder(orderID, productID, count);
+
+            res.status(200).send('OK');
+        } catch (err) {
+            res.status(400).send(err);
+        }
+    }
+
+    res.status(400).send("Failed");
+});
+
+
+//http://localhost:3000/checkout?id=123456
+router.get('/checkout', authMiddleware.requiredAuth, async function (req, res, next) {
+    var userID = req.signedCookies.userID;
+//  console.log(cart);
+
+    var isValid = await cartController.checkUserIDValid(userID);
+
+    if (isValid) {
+        var customer = await checkoutController.getUser(userID);
+        var orderID = await cartController.getCartID(userID);
+        console.log(orderID)
+        var totalPrice = await checkoutController.getOrderTotalPrice(orderID)
+
+        res.render('checkout', {cus: customer, total: totalPrice, selected: 4});
+    } else
+        res.end("Error");
+
+});
+
+router.post('/checkout', jsonParser, function (req, res) {
+    console.log(req.body);
+    //Gặp vấn đề, đang giải quyết
+})
+
+router.get('/register', jsonParser, function (req, res) {
+    res.render('register', {selected: 2});
+})
+
+router.post('/register', jsonParser, function (req, res) {
+    queryOthers.RegisterUser(req, res);
 })
 
 router.get('/product', async function (req, res, next) {
-  //console.log(req.cookies.ppkcookie);
-  var id = req.query.id;
-  var p = await productController.getProductByID(id);
+    var id = req.query.id;
+    var p = await productController.getProductByID(id);
 
-  console.log(p);
-  res.render('product', {p: p, selected: 2});
+    res.render('product', {p: p, selected: 2});
 });
 
-router.get('/cart', function(req, res, next) {
-  var listCart = [];
-  var cart = JSON.parse(req.cookies.cart);
-  
-  if(req.signedCookies.userID!=null){
-    res.render('cart', { selected: 3 });
-  }
-  else{
-    cart.forEach(async element => {
-      var p = await productController.getProductByID(element.id);
-      element.Price = p.Price;
-      listCart.push(element);
-    });
-    console.log(listCart);
-    res.render('cart', {c:cart, selected: 3 });
-  }
-});
 
+router.get('/cart', async function (req, res) {
+    var total = 0;
+    var cart = {};
+    if (req.signedCookies.userID != null) {
+        var userID = req.signedCookies.userID;
+
+        var isValid = await cartController.checkUserIDValid(userID);
+        if (isValid) {
+            var cartId = await cartController.getCartID(userID);
+            cart = await cartController.getOrderDetailByOrderID(cartId);
+            Promise.all(cart).then(()=>res.render('cart', {c: cart, total: total, selected: 3}));
+        } else
+            res.render('cart', {c: [], total: 0, selected: 3});
+    } else {
+        try {
+            cart = JSON.parse(req.cookies.cart);
+        } catch (e) {
+            res.render('cart', {c: [], total: 0, selected: 3});
+        }
+        if(cart.length==0)
+            res.render('cart', {c: [], total: 0, selected: 3});
+        else {
+            for (var i = 0;i<cart.length;i++){
+                let price = await cartController.getPriceProductByID(cart[i].ProductID);
+                cart[i].Price = price;
+                total += price * cart[i].Quantity;
+                if(i==cart.length-1)
+                    res.render('cart', {c: cart, total: total, selected: 3});
+            }
+        }
+    }
+});
 //Việt add>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 module.exports = router;

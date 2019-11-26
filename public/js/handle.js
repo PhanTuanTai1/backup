@@ -72,5 +72,96 @@ $(".addtoCart").on('click', function() {
     }
 });
 
+$(".addAlltoCart").on('click', function() {
+    alert("Access");
+
+    var userID = getCookie('userID');
+    var count = parseInt($(this).attr('count').toString());
+    var productID = $(this).attr('value');
+
+    if(userID) {
+        alert('nothing to do here');
+        console.log(count + "|" + productID);
+        $.post( "/cart/All/" + productID+ "|" + count).done("OK");
+        return;
+    }
+
+    var cart = getCookie('cart');
+
+    if(!cart) {
+        var cartDetail = [];
+        var product = {
+            ProductID: productID,
+            Quantity: count
+        };
+        cartDetail.push(product);
+        setCookie('cart',JSON.stringify(cartDetail),100);
+    }
+    else {
+        var cartArray = JSON.parse(cart);
+
+        var found = false;
+        cartArray.forEach(product => {
+            if(product.ProductID == productID) {
+                product.Quantity += count;
+                setCookie('cart',JSON.stringify(cartArray),100);
+
+                found = true;
+            }
+        });
+
+        if(!found) {
+            var product = {
+                ProductID: productID,
+                Quantity: count
+            };
+
+            cartArray.push(product);
+            setCookie('cart',JSON.stringify(cartArray),100);
+            console.log(product);
+        }
+    }
+});
+
+
+$(".del").on('click', function() {
+    alert("Deleted");
+    var userID = getCookie('userID');
+    console.log(userID);
+    if(userID) {
+        alert('ID is' + $(this).attr('id').toString());
+        $.post( "/cart/delete/" + $(this).attr('id')).done("OK");
+        document.location.reload(true);
+        return;
+    }
+    else {
+        var cart = getCookie('cart');
+        if(!cart) {
+            $.get("/cart");
+        }
+        else {
+            console.log("ok my");
+            var cartArray = JSON.parse(cart);
+            var cartDetail = [];
+
+            for (var i = 0;i<cartArray.length;i++){
+                if(cartArray[i].ProductID != $(this).attr('id')) {
+                    var product = {
+                        ProductID: cartArray[i].ProductID,
+                        Quantity: cartArray[i].Quantity
+                    };
+                    cartDetail.push(product);
+
+                }
+                if(i==cartArray.length-1){
+                    setCookie('cart',JSON.stringify(cartDetail),100);
+                    console.log(cartDetail);
+                    document.location.reload(true);
+                }
+            }
+        }
+    }
+});
+
 
 
