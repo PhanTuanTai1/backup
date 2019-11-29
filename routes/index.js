@@ -137,12 +137,24 @@ router.get('/checkout', authMiddleware.requiredAuth, async function (req, res, n
 });
 
 router.post('/checkout', jsonParser, async function (req, res) {
+    var info = req.body;
+    var today = new Date();
+    var date = today.getDate() + '-' + (today.getMonth()+1) + '-' + today.getFullYear();
     console.log(req.body);
     var userID = req.signedCookies.userID;
     var isValid = await cartController.checkUserIDValid(userID);
     if (isValid) {
         var varies = await cartController.getCartID(userID);
-        var t = await checkoutController.changeStatus(userID, varies);
+        var name = await cartController.getProductName(varies);
+        res.redirect('/');
+        var t = await checkoutController.completeOrder(userID, varies,name,info.TotalPrice,{
+            "FirstName" : info.FirstName,
+            "LaseName" : info.LaseName,
+            "Address" : info.Address,
+            "Phone" : info.Phone,
+            "DeliveryDate" : date,
+            "PaymentMethod": info.PaymentMethod
+        });
         if (t)
             res.redirect('/');
         else

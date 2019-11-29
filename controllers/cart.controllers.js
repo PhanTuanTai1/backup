@@ -89,9 +89,11 @@ function createNewOrder(userID) {
             Item: {
                 "UserID": userID,
                 "Varies": variesID,
+                "Title": "NULL",
                 "Status": "isCart",
                 "TotalPrice" : 0,
                 "Date" : dateTime,
+                "ShipMoney": 0,
                 "DetailInfo" : {}
             }
         };
@@ -299,14 +301,15 @@ module.exports.setPriceToCart = (cart) => {
         }
     })
 }
-module.exports.getProduct = (id) => {
+
+module.exports.getProduct = (productID) => {
     return new Promise( async (resolve, reject) => {
         var paramsProductID = {
             TableName : "Products",
             IndexName : "ProductIDIndex",
             KeyConditionExpression: "ProductID = :productID",
             ExpressionAttributeValues: {
-                ":productID": id
+                ":productID": productID
             }
         };
 
@@ -317,5 +320,40 @@ module.exports.getProduct = (id) => {
                 return resolve(data.Items[0]);
             }
         });
+    })
+}
+
+module.exports.getProductName = (orderID) => {
+    return new Promise( async (resolve, reject) => {
+        var paramsOrderDetail = {
+            TableName : "Orders",
+            KeyConditionExpression: "OrderID = :orderID",
+            ExpressionAttributeValues: {
+                ":orderID": orderID
+            }
+        };
+        docClient.query(paramsOrderDetail, function(err, data1) {
+            if (err) {
+                return reject(err);
+            } else {
+                var paramsProductID = {
+                    TableName : "Products",
+                    IndexName : "ProductIDIndex",
+                    KeyConditionExpression: "ProductID = :productID",
+                    ExpressionAttributeValues: {
+                        ":productID": data1.Items[0].ProductID
+                    }
+                };
+
+                docClient.query(paramsProductID, function(err, data2) {
+                    if (err) {
+                        return reject(err);
+                    } else {
+                        return resolve("Đơn hàng " + data2.Items[0].ProductName);
+                    }
+                });
+            }
+        });
+
     })
 }
