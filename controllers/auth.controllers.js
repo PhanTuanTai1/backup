@@ -59,6 +59,10 @@ module.exports.loginPost = (req,res) => {
 
             var userID = respone[0].UserID;
             var localData = req.cookies.cart;
+            console.log(localData);
+            if(localData==null){
+                res.redirect('/');
+            }
 
             var isSuccess = await merger.Merge(localData,userID);
             if(isSuccess) {

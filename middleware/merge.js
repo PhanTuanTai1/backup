@@ -15,8 +15,6 @@ module.exports.Merge =  async (localData, userID) => {
 
     var orderID = await cartController.getCartID(userID);
 
-    //await cartController.addProductToOrder(orderID,productID);
-
     var productsLocal = JSON.parse(localData);
 
     if(productsLocal.length <= 0) {
@@ -25,8 +23,8 @@ module.exports.Merge =  async (localData, userID) => {
 
     productsLocal.forEach(async product => await cartController.addProductToOrder(
         orderID,
-        product.id,
-        product.quantity
+        product.ProductID,
+        product.Quantity
     ));
 
     return true;

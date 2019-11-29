@@ -76,10 +76,8 @@ router.post('/cart/delete/:id', async function (req, res, next) {
         var orderID = await cartController.getCartID(userID);
         console.log(orderID, productID);
         try {
-            await cartController.deleteOrderDetail(orderID, productID);
-
-
-            //res.status(200).send('OK');
+            var t = await cartController.deleteOrderDetail(orderID, productID);
+            res.status(200).send('OK')
         } catch (err) {
             res.status(400).send(err);
         }
@@ -102,8 +100,9 @@ router.post('/cart/All/:id', async function (req, res, next) {
 
     if (isValid) {
         //res.render('cart', { selected: 3 });
-
+        console.log("Find order");
         var orderID = await cartController.getCartID(userID);
+        console.log("Find order success = " + orderID);
 
         try {
             await cartController.addProductToOrder(orderID, productID, count);
@@ -113,8 +112,9 @@ router.post('/cart/All/:id', async function (req, res, next) {
             res.status(400).send(err);
         }
     }
-
-    res.status(400).send("Failed");
+    else {
+        res.status(400).send("Failed");
+    }
 });
 
 
@@ -134,12 +134,22 @@ router.get('/checkout', authMiddleware.requiredAuth, async function (req, res, n
         res.render('checkout', {cus: customer, total: totalPrice, selected: 4});
     } else
         res.end("Error");
-
 });
 
-router.post('/checkout', jsonParser, function (req, res) {
+router.post('/checkout', jsonParser, async function (req, res) {
     console.log(req.body);
-    //Gặp vấn đề, đang giải quyết
+    var userID = req.signedCookies.userID;
+    var isValid = await cartController.checkUserIDValid(userID);
+    if (isValid) {
+        var varies = await cartController.getCartID(userID);
+        var t = await checkoutController.changeStatus(userID, varies);
+        if (t)
+            res.redirect('/');
+        else
+            res.end("Error");
+    } else {
+        res.end("Error");
+    }
 })
 
 router.get('/register', jsonParser, function (req, res) {
@@ -168,7 +178,18 @@ router.get('/cart', async function (req, res) {
         if (isValid) {
             var cartId = await cartController.getCartID(userID);
             cart = await cartController.getOrderDetailByOrderID(cartId);
-            Promise.all(cart).then(()=>res.render('cart', {c: cart, total: total, selected: 3}));
+            if (cart.length == 0) {
+                res.render('cart', {c: [], total: 0, selected: 3})
+            } else {
+                for (var i = 0; i < cart.length; i++) {
+                    let p = await cartController.getProduct(cart[i].ProductID);
+                    cart[i].ProductName = p.ProductName;
+                    total += cart[i].Price * cart[i].Quantity;
+                    if (i == cart.length - 1) {
+                        res.render('cart', {c: cart, total: total, selected: 3})
+                    }
+                }
+            }
         } else
             res.render('cart', {c: [], total: 0, selected: 3});
     } else {
@@ -177,19 +198,18 @@ router.get('/cart', async function (req, res) {
         } catch (e) {
             res.render('cart', {c: [], total: 0, selected: 3});
         }
-        if(cart.length==0)
+        if (cart.length == 0)
             res.render('cart', {c: [], total: 0, selected: 3});
         else {
-            for (var i = 0;i<cart.length;i++){
+            for (var i = 0; i < cart.length; i++) {
                 let price = await cartController.getPriceProductByID(cart[i].ProductID);
                 cart[i].Price = price;
                 total += price * cart[i].Quantity;
-                if(i==cart.length-1)
+                if (i == cart.length - 1)
                     res.render('cart', {c: cart, total: total, selected: 3});
             }
         }
     }
 });
-//Việt add>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 module.exports = router;

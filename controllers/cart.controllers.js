@@ -118,21 +118,20 @@ module.exports.addProductToOrder = (orderID, productID, num = 1) => {
         if(!product) return reject("Not found product");
 
         var orderDetail = await getOrderDetailByOrderIDAndProductID(orderID,productID);
-
         if(orderDetail == null) {
-            var added = await addNewOrderDetail(orderID,product);
+            var added = await addNewOrderDetail(orderID,product,num);
 
             if(added) console.log('added new order'); 
         }
         else {
             var edited = await setQuantityOfProductInOrder(orderID,productID,num);
 
-            if(edited) console.log('edited order'); 
+            if(edited) console.log('edited order');
         }
     });
 }
 
-function addNewOrderDetail(orderID,product) {
+function addNewOrderDetail(orderID,product,num) {
 
     console.log(product);
 
@@ -142,7 +141,7 @@ function addNewOrderDetail(orderID,product) {
             Item: {
                 "OrderID" : orderID,
                 "ProductID" : product.ProductID,
-                "Quantity" : 1,
+                "Quantity" : num,
                 "Price" : product.price
             }
         };
@@ -152,6 +151,7 @@ function addNewOrderDetail(orderID,product) {
                console.log(JSON.stringify(err));
            } else {
                return resolve(true);
+
            }
         });
     })
@@ -223,7 +223,6 @@ function getProductByID(productID) {
         });
     });
 }
-
 //================================================================================================================
 module.exports.getPriceProductByID = (id) => {
     return new Promise( async (resolve, reject) => {
@@ -277,10 +276,8 @@ module.exports.deleteOrderDetail = (orderID, productID) => {
 
         docClient.delete(params, function(err, data) {
             if (err) {
-                console.log("1");
                 return reject(err);
             } else {
-                console.log("2");
                 return resolve(true);
             }
         });
@@ -289,9 +286,7 @@ module.exports.deleteOrderDetail = (orderID, productID) => {
 
 module.exports.setPriceToCart = (cart) => {
     return new Promise( async (resolve, reject) => {
-        console.log("1");
         var ls = cart;
-        console.log("2");
         for (var i = 0;i<ls.length;i++){
             console.log(ls[i].ProductID);
             let price = await getPriceProductByID(ls[i].ProductID);
@@ -302,5 +297,25 @@ module.exports.setPriceToCart = (cart) => {
                 return resolve(ls);
             }
         }
+    })
+}
+module.exports.getProduct = (id) => {
+    return new Promise( async (resolve, reject) => {
+        var paramsProductID = {
+            TableName : "Products",
+            IndexName : "ProductIDIndex",
+            KeyConditionExpression: "ProductID = :productID",
+            ExpressionAttributeValues: {
+                ":productID": id
+            }
+        };
+
+        docClient.query(paramsProductID, function(err, data) {
+            if (err) {
+                return reject(err);
+            } else {
+                return resolve(data.Items[0]);
+            }
+        });
     })
 }

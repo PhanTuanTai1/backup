@@ -54,3 +54,31 @@ module.exports.getOrderTotalPrice = (orderID) => {
     })
 }
 
+module.exports.changeStatus = (UserID, Varies) => {
+    return new Promise((resolve,reject) => {
+        var params = {
+            TableName: "Users",
+            Key:{
+                "UserID": UserID,
+                "Varies": Varies
+            },
+            UpdateExpression: "set #st =:s",
+            ExpressionAttributeNames:{
+                "#st": "Status"
+            },
+            ExpressionAttributeValues:{
+                ":s": "Completed"
+            },
+            ReturnValues:"UPDATED_NEW"
+        };
+
+        docClient.update(params, function(err, data) {
+            if (err) {
+                console.log(JSON.stringify(err));
+            } else {
+                return resolve(true);
+            }
+        });
+    })
+}
+
